@@ -1,3 +1,5 @@
+from constants import *
+
 import os
 import numpy as np
 from types import SimpleNamespace
@@ -23,9 +25,6 @@ class DataPreparer:
         self.sample_rate = sample_rate
         self.cqt_step_size = cqt_step_size
 
-        self.constants = SimpleNamespace(
-            CQT_NUM_BUCKETS = 88
-        )
 
     def audio_file_to_cqt(self,
                           file_name) -> (np.array, int):
@@ -34,7 +33,7 @@ class DataPreparer:
         file_path = os.path.join(current_dir, self.audio_file_path, file_name)
 
         y, sr = librosa.load(file_path)
-        C = np.abs(librosa.cqt(y, sr=self.sample_rate, bins_per_octave=12, n_bins=self.constants.CQT_NUM_BUCKETS, hop_length=self.cqt_step_size))
+        C = np.abs(librosa.cqt(y, sr=self.sample_rate, bins_per_octave=12, n_bins=CQT_NUM_BUCKETS, hop_length=self.cqt_step_size))
         return C, sr
         
     def output_cqt_file(self,

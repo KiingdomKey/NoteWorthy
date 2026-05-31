@@ -1,3 +1,5 @@
+from constants import *
+
 import numpy as np
 import random
 from types import SimpleNamespace
@@ -57,17 +59,6 @@ class TrainingDataGenerator:
         valid_notes += ['C8']
         self.valid_notes = valid_notes
 
-        self.constants = SimpleNamespace(
-
-            NOTE_ONSET = 1,
-            NOTE_CONTINUED = 2,
-            NOTE_END = 3,
- 
-            LOWEST_NOTE_OFFSET = 20 + 1, # 20 is A0 in pretty_midi, and the extra 1 is for the indexing offset
-            CQT_NUM_BUCKETS = 88,
-            MIN_NOTE_INTERVAL = 0.1
-        )
-
     def _is_note_overlapping(self,
                          note: pretty_midi.Note,
                          instrument: pretty_midi.Instrument) -> bool:
@@ -98,7 +89,7 @@ class TrainingDataGenerator:
 
                 note_number = pretty_midi.note_name_to_number(random_note)
 
-                start = random.uniform(0, max_total_length - self.constants.MIN_NOTE_INTERVAL)
+                start = random.uniform(0, max_total_length - MIN_NOTE_INTERVAL)
                 end = np.min([start + random.uniform(min_note_length, max_note_length), max_total_length])
 
                 velocity = random.randint(*velocity_range)
@@ -143,17 +134,17 @@ class TrainingDataGenerator:
                       audio_length: int) -> np.array:
         
         time_steps = int(audio_length / self.cqt_step_size) + 1
-        labels = np.zeros((self.constants.CQT_NUM_BUCKETS, time_steps))
+        labels = np.zeros((CQT_NUM_BUCKETS, time_steps))
 
         for note in instrument.notes:
 
             start = int(np.round(note.start * self.sample_rate / self.cqt_step_size))
             end = int(np.round(note.end * self.sample_rate / self.cqt_step_size))
 
-            pitch = note.pitch - self.constants.LOWEST_NOTE_OFFSET
-            labels[pitch, start] = self.constants.NOTE_ONSET
-            labels[pitch, start + 1:end] = self.constants.NOTE_CONTINUED
-            labels[pitch, end] = self.constants.NOTE_END
+            pitch = note.pitch - LOWEST_NOTE_OFFSET
+            labels[pitch, start] = NOTE_ONSET_SYMBOL
+            labels[pitch, start + 1:end] = NOTE_CONTINUED_SYMBOL
+            labels[pitch, end] = NOTE_END_SYMBOL
 
         return labels
 

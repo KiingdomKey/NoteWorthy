@@ -38,7 +38,7 @@ class Dataset(torch.utils.data.Dataset):
 
         return data, labels
 
-class DataModule(pl.LightningModule):
+class DataModule(pl.LightningDataModule):
 
     def __init__(self,
                  data_path: str,

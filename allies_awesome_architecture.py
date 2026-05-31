@@ -4,6 +4,8 @@ import torch
 import lightning.pytorch as pl
 import numpy as np
 
+
+
 class ConvLayer(pl.LightningModule):
     def __init__(self,
                  in_size,
@@ -25,6 +27,8 @@ class ConvLayer(pl.LightningModule):
             y = y + x
         return y
 
+
+
 class RecurrentResidualLayer(pl.LightningModule):
     def __init__(self,
                  latent_size = 64,
@@ -36,6 +40,32 @@ class RecurrentResidualLayer(pl.LightningModule):
                                        batch_first=True)
     def forward(self, x):
         return x + self.rnn_layer(self.layer_norm(x))[0]
+
+
+
+def calculate_loss(predictions, targets):
+    
+    loss_function = torch.nn.CrossEntropyLoss()
+    losses = []
+
+    if not torch.is_tensor(predictions):
+        predictions = torch.tensor(predictions)
+    if not torch.is_tensor(targets):
+        targets = torch.tensor(targets)
+
+    
+    for i in range(targets.shape[1]):
+        targets_slice = targets[:, :, i]
+        targets_slice = torch.tensor(targets_slice).to(int)
+        if (len(targets_slice.shape) < 2):
+            targets_slice = targets_slice.unsqueeze(dim=0)
+
+        loss = loss_function(predictions[:, :, :, i], targets_slice[:, :]).sum()
+        losses += [loss]
+
+    return losses
+
+
 
 class RCNN(pl.LightningModule):
 
@@ -81,8 +111,6 @@ class RCNN(pl.LightningModule):
 
         self.output_activation = torch.nn.Softmax(dim=2)
 
-        
-
     def forward(self, x):
         # Enters as batch, pitch, time
         y = x
@@ -112,8 +140,44 @@ class RCNN(pl.LightningModule):
         predictions = self.output_layer(predictions)[0]
 
         predictions = torch.unflatten(predictions, dim=2, sizes=(4, 88))
-        predictions = self.output_activation(predictions)
 
         predictions = predictions.permute(0, 2, 3, 1)
 
         return predictions
+
+    def predict(self,
+                x):
+        y = x
+        y = self(y)
+        y = self.output_activation(y)
+        return y
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=0.001)
+
+        return {
+            "optimizer": optimizer,
+            "gradient_clip_val": 1.0
+        }
+
+    def training_step(self, train_batch, batch_idx):
+        data, labels = train_batch
+        predictions = self(data)
+
+        loss = sum(calculate_loss(predictions, labels))
+        self.log('train_loss', loss, on_step=True, on_epoch=True)
+
+        return loss
+
+    def validation_step(self, val_batch, batch_idx):
+        data, labels = val_batch
+        predictions = self(data)
+
+        with torch.no_grad():
+            loss = sum(calculate_loss(predictions, labels))
+
+        self.log('val_loss', loss, on_step=True, on_epoch=True)
+
+        return loss
+
+    

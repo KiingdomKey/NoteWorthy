@@ -31,7 +31,7 @@ class Dataset(torch.utils.data.Dataset):
         label_file_path = os.path.join(current_dir, self.labels_path, data_file_name)
 
         data = np.load(data_file_path)
-        data = torch.tensor(data, dtype=torch.float32).transpose(1, 0)
+        data = torch.tensor(data, dtype=torch.float32).transpose(1, 0) # We permute data and labels to time, pitch here
 
         labels = np.load(label_file_path)
         labels = torch.tensor(labels, dtype=torch.float64).transpose(1, 0)
@@ -74,8 +74,8 @@ class DataModule(pl.LightningModule):
         
         data, labels = zip(*batch)
 
-        padded_data = torch.nn.utils.rnn.pad_sequence(data, batch_first=True, padding_value=0)
-        padded_labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=0)
+        padded_data = torch.nn.utils.rnn.pad_sequence(data, batch_first=True, padding_value=0).permute(0, 2, 1)
+        padded_labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=0).permute(0, 2, 1)
 
         return padded_data, padded_labels
 
@@ -92,9 +92,3 @@ class DataModule(pl.LightningModule):
                                            num_workers=self.num_workers,
                                            shuffle=False,
                                            collate_fn=self.collate)
-            
-            
-
-
-
-

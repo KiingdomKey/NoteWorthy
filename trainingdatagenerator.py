@@ -27,14 +27,10 @@ class TrainingDataGenerator:
     def __init__(self,
                  audio_output_path: str,
                  label_output_path: str,
-                 sample_rate: int = 22050,
-                 cqt_step_size: int = 512,
                  default_instrument_name: str = "Acoustic Grand Piano"):
 
         self.audio_output_path = audio_output_path
         self.label_output_path = label_output_path
-        self.sample_rate = sample_rate
-        self.cqt_step_size = cqt_step_size
 
         if default_instrument_name not in pretty_midi.constants.INSTRUMENT_MAP:
             default_instrument_name = "Acoustic Grand Piano"
@@ -110,7 +106,7 @@ class TrainingDataGenerator:
         audio_data = instrument.fluidsynth(synthesizer=synthesizer)
 
         if use_clean_audio:
-            clean_audio_obj = IPython.display.Audio(audio_data, rate=self.sample_rate)
+            clean_audio_obj = IPython.display.Audio(audio_data, rate=SAMPLE_RATE)
             audio_data = np.frombuffer(clean_audio_obj.data, dtype=np.int16)
 
         return audio_data
@@ -133,13 +129,13 @@ class TrainingDataGenerator:
                       instrument: pretty_midi.Instrument,
                       audio_length: int) -> np.array:
         
-        time_steps = int(audio_length / self.cqt_step_size) + 1
+        time_steps = int(audio_length / (CQT_STEP_SIZE* TIME_STEP_LENGTH)) + 1
         labels = np.zeros((CQT_NUM_BUCKETS, time_steps))
 
         for note in instrument.notes:
 
-            start = int(np.round(note.start * self.sample_rate / self.cqt_step_size))
-            end = int(np.round(note.end * self.sample_rate / self.cqt_step_size))
+            start = int(np.round(note.start * SAMPLE_RATE / (CQT_STEP_SIZE * TIME_STEP_LENGTH)))
+            end = int(np.round(note.end * SAMPLE_RATE / (CQT_STEP_SIZE * TIME_STEP_LENGTH)))
 
             pitch = note.pitch - LOWEST_NOTE_OFFSET
             labels[pitch, start] = NOTE_ONSET_SYMBOL

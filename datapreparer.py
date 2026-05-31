@@ -16,14 +16,10 @@ class DataPreparer:
 
     def __init__(self,
                  audio_file_path: str,
-                 prepared_data_output_path: str,
-                 sample_rate: int = 22050,
-                 cqt_step_size: int = 512):
+                 prepared_data_output_path: str):
 
         self.audio_file_path = audio_file_path
         self.prepared_data_output_path = prepared_data_output_path
-        self.sample_rate = sample_rate
-        self.cqt_step_size = cqt_step_size
 
 
     def audio_file_to_cqt(self,
@@ -33,7 +29,7 @@ class DataPreparer:
         file_path = os.path.join(current_dir, self.audio_file_path, file_name)
 
         y, sr = librosa.load(file_path)
-        C = np.abs(librosa.cqt(y, sr=self.sample_rate, bins_per_octave=12, n_bins=CQT_NUM_BUCKETS, hop_length=self.cqt_step_size))
+        C = np.abs(librosa.cqt(y, sr=SAMPLE_RATE, bins_per_octave=12, n_bins=CQT_NUM_BUCKETS, hop_length=CQT_STEP_SIZE))
         return C, sr
         
     def output_cqt_file(self,

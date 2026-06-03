@@ -4,6 +4,7 @@ import torch
 import lightning.pytorch as pl
 import numpy as np
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class ConvLayer(pl.LightningModule):
@@ -45,7 +46,7 @@ class RecurrentResidualLayer(pl.LightningModule):
 
 def calculate_loss(predictions, targets):
     
-    loss_function = torch.nn.CrossEntropyLoss()
+    loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS).to(device))
     losses = []
 
     if not torch.is_tensor(predictions):
@@ -54,7 +55,7 @@ def calculate_loss(predictions, targets):
         targets = torch.tensor(targets)
 
     
-    for i in range(targets.shape[1]):
+    for i in range(targets.shape[2]):
         targets_slice = targets[:, :, i]
         targets_slice = torch.tensor(targets_slice).to(int)
         if (len(targets_slice.shape) < 2):
@@ -101,17 +102,21 @@ class RCNN(pl.LightningModule):
 
         lstm_layers = []
 
-        for _ in range(1):
-            lstm_layers += [RecurrentResidualLayer(latent_size=POST_FLATTEN_SIZE)]
+      #  for _ in range(1):
+      #      lstm_layers += [RecurrentResidualLayer(latent_size=POST_FLATTEN_SIZE)]
 
         self.lstm_layers = torch.nn.Sequential(*lstm_layers)
-        self.output_layer = torch.nn.LSTM(input_size=POST_FLATTEN_SIZE,
-                                          hidden_size=88 * 4,
-                                          batch_first=True)
 
-        self.output_activation = torch.nn.Softmax(dim=2)
+        self.lstm_projection = torch.nn.Linear(POST_FLATTEN_SIZE, 128)
+
+        self.lstm_layer = RecurrentResidualLayer(latent_size=128)
+
+        self.output_layer = torch.nn.Linear(128, 88 * 4)
+
+        self.output_activation = torch.nn.Softmax(dim=1)
 
     def forward(self, x):
+
         # Enters as batch, pitch, time
         y = x
         total_time_steps = y.shape[2]
@@ -136,8 +141,9 @@ class RCNN(pl.LightningModule):
 
         predictions = torch.cat(predictions, axis=1)
 
-        predictions = self.lstm_layers(predictions)
-        predictions = self.output_layer(predictions)[0]
+        predictions = self.lstm_projection(predictions)
+        predictions = self.lstm_layer(predictions)
+        predictions = self.output_layer(predictions)
 
         predictions = torch.unflatten(predictions, dim=2, sizes=(4, 88))
 
@@ -162,21 +168,32 @@ class RCNN(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         data, labels = train_batch
+
+        data = data.to(device)
+        labels = labels.to(device)
+
         predictions = self(data)
 
         loss = sum(calculate_loss(predictions, labels))
-        self.log('train_loss', loss, on_step=True, on_epoch=True)
+
+        adjusted_loss = loss / labels.shape[-1]
+        self.log('train_loss', adjusted_loss, on_step=False, on_epoch=True)
 
         return loss
 
     def validation_step(self, val_batch, batch_idx):
         data, labels = val_batch
+
+        data = data.to(device)
+        labels = labels.to(device)
+
         predictions = self(data)
 
         with torch.no_grad():
             loss = sum(calculate_loss(predictions, labels))
 
-        self.log('val_loss', loss, on_step=True, on_epoch=True)
+        adjusted_loss = loss / labels.shape[-1]
+        self.log('val_loss', adjusted_loss, on_step=False, on_epoch=True)
 
         return loss
 

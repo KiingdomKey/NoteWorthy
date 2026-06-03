@@ -58,10 +58,13 @@ class TrainingDataGenerator:
     def _is_note_overlapping(self,
                          note: pretty_midi.Note,
                          instrument: pretty_midi.Instrument) -> bool:
+
         
         for instrument_note in instrument.notes:
+            instrument_note_start = instrument_note.start - MIN_NOTE_INTERVAL
+            instrument_note_end = instrument_note.end + MIN_NOTE_INTERVAL
             if (note.pitch == instrument_note.pitch) \
-                and ((instrument_note.start <= note.start <= instrument_note.end) or (instrument_note.start <= note.end <= instrument_note.end)):
+                and ((instrument_note_start <= note.start <= instrument_note_end) or (instrument_note_start <= note.end <= instrument_note_end)):
                     return True 
 
         return False
@@ -72,7 +75,7 @@ class TrainingDataGenerator:
                       max_total_length: float,
                       min_note_length: float,
                       max_note_length: float,
-                      velocity_range: tuple[int, int] = (20, 100)) -> pretty_midi.Instrument:
+                      velocity_range: tuple[int, int] = (20, 100),) -> pretty_midi.Instrument:
 
         instrument_program = pretty_midi.instrument_name_to_program(self.default_instrument_name)
         instrument = pretty_midi.Instrument(program=instrument_program)

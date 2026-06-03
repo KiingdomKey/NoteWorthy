@@ -31,10 +31,10 @@ class Dataset(torch.utils.data.Dataset):
         label_file_path = os.path.join(current_dir, self.labels_path, data_file_name)
 
         data = np.load(data_file_path)
-        data = torch.tensor(data, dtype=torch.float32).transpose(1, 0) # We permute data and labels to time, pitch here
+        data = torch.from_numpy(data).float().transpose(1, 0) # We permute data and labels to time, pitch here
 
         labels = np.load(label_file_path)
-        labels = torch.tensor(labels, dtype=torch.float64).transpose(1, 0)
+        labels = torch.from_numpy(labels).int().transpose(1, 0)
 
         return data, labels
 
@@ -84,6 +84,7 @@ class DataModule(pl.LightningDataModule):
                                            batch_size=self.batch_size,
                                            num_workers=self.num_workers,
                                            shuffle=True,
+                                           persistent_workers=True,
                                            collate_fn=self.collate)
 
     def val_dataloader(self):
@@ -91,4 +92,5 @@ class DataModule(pl.LightningDataModule):
                                            batch_size=self.batch_size,
                                            num_workers=self.num_workers,
                                            shuffle=False,
+                                           persistent_workers=True,
                                            collate_fn=self.collate)

@@ -125,8 +125,7 @@ class TrainingDataGenerator:
 
         file_path = os.path.join(current_dir, audio_subdir, file_name)
 
-        with open(file_path, "wb") as f:
-            f.write(audio_data)  
+        soundfile.write(file_path, audio_data, SAMPLE_RATE)
 
     def midi_to_label(self,
                       instrument: pretty_midi.Instrument,

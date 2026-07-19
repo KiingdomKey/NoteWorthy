@@ -106,7 +106,7 @@ class TrainingDataGenerator:
                       synthesizer: str = None,
                       use_clean_audio=True) -> np.array:
 
-        audio_data = instrument.fluidsynth(synthesizer=synthesizer)
+        audio_data = instrument.fluidsynth(fs=SAMPLE_RATE, synthesizer=synthesizer)
 
         if use_clean_audio:
             clean_audio_obj = IPython.display.Audio(audio_data, rate=SAMPLE_RATE)
@@ -132,7 +132,7 @@ class TrainingDataGenerator:
                       audio_length: int) -> np.array:
         
         time_steps = int(audio_length / (CQT_STEP_SIZE* TIME_STEP_LENGTH)) + 1
-        labels = np.zeros((CQT_NUM_BUCKETS, time_steps))
+        labels = np.zeros((88, time_steps))
 
         for note in instrument.notes:
 

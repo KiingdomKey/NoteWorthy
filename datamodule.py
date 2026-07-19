@@ -74,8 +74,8 @@ class DataModule(pl.LightningDataModule):
         
         data, labels = zip(*batch)
 
-        padded_data = torch.nn.utils.rnn.pad_sequence(data, batch_first=True, padding_value=0).permute(0, 2, 1)
-        padded_labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=0).permute(0, 2, 1)
+        padded_data = torch.nn.utils.rnn.pad_sequence(data, batch_first=True, padding_value=-1).permute(0, 2, 1)
+        padded_labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=-1).permute(0, 2, 1)
 
         return padded_data, padded_labels
 
@@ -84,7 +84,7 @@ class DataModule(pl.LightningDataModule):
                                            batch_size=self.batch_size,
                                            num_workers=self.num_workers,
                                            shuffle=True,
-                                           persistent_workers=True,
+                                           persistent_workers=True if self.num_workers > 0 else False,
                                            collate_fn=self.collate)
 
     def val_dataloader(self):
@@ -92,5 +92,5 @@ class DataModule(pl.LightningDataModule):
                                            batch_size=self.batch_size,
                                            num_workers=self.num_workers,
                                            shuffle=False,
-                                           persistent_workers=True,
+                                           persistent_workers=True if self.num_workers > 0 else False,
                                            collate_fn=self.collate)
